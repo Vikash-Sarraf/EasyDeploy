@@ -8,22 +8,17 @@ import { Fira_Code } from "next/font/google";
 import axios from "axios";
 import Confetti from 'react-confetti';
 
-
 const socket = io("http://localhost:9002");
 
 const firaCode = Fira_Code({ subsets: ["latin"] });
 
 export default function Home() {
   const [repoURL, setURL] = useState<string>("");
+  const [projectId, setProjectId] = useState<string>("");
   const [showUrl, setShowUrl] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
-
   const [loading, setLoading] = useState(false);
-
-  const [projectId, setProjectId] = useState<string | undefined>();
-  const [deployPreviewURL, setDeployPreviewURL] = useState<
-    string | undefined
-  >();
+  const [deployPreviewURL, setDeployPreviewURL] = useState<string | undefined>();
 
   const logContainerRef = useRef<HTMLElement>(null);
 
@@ -36,10 +31,13 @@ export default function Home() {
   }, [repoURL]);
 
   const handleClickDeploy = useCallback(async () => {
+    if (!isValidURL[0] || !projectId.trim()) return;
+
     setLoading(true);
 
     const { data } = await axios.post(`http://localhost:5000`, {
       git_url: repoURL,
+      project_id: projectId,
     });
 
     if (data && data.data) {
@@ -51,24 +49,20 @@ export default function Home() {
       // console.log(`Subscribing to logs:${projectid}`);
       socket.emit("subscribe", `logs:${projectid}`);
     }
-  }, [repoURL]);
+  }, [repoURL, projectId, isValidURL]);
 
   const handleSocketIncommingMessage = useCallback((message: string) => {
     // console.log(`[Incomming Socket Message]:`, typeof message, message);
-    if(message[0]==='J'){
+    if (message[0] === 'J') {
       setLogs((prev) => [...prev, "Deploying..."]);
-    }
-    else if(message==='{"log":"Done"}'){
+    } else if (message === '{"log":"Done"}') {
       setShowUrl(true);
       setLogs((prev) => [...prev, "Done"]);
-
-    }
-    else{
-      
+    } else {
       const { log } = JSON.parse(message);
       setLogs((prev) => [...prev, log]);
     }
-    
+
     logContainerRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
@@ -82,14 +76,12 @@ export default function Home() {
 
   return (
     <>
-    {showUrl && 
-      <Confetti   
-      />
-      
-      }
+      {showUrl && <Confetti />}
       <nav className="text-white p-4">
         <div className="container mx-auto flex justify-between items-center">
-          <a href="/" className="text-2xl font-bold"><span className="bg-gradient-to-r from-purple-500 via-indigo-400 to-purple-300 inline-block text-transparent bg-clip-text"> Easy</span>Deploy</a>
+          <a href="/" className="text-2xl font-bold">
+            <span className="bg-gradient-to-r from-purple-500 via-indigo-400 to-purple-300 inline-block text-transparent bg-clip-text">Easy</span>Deploy
+          </a>
           <div className="flex items-center gap-4">
             <a href="https://github.com/Vikash-Sarraf/" className="hover:bg-slate-900 hover:text-white px-3 py-2 rounded transition duration-150 ease-in-out">About</a>
             <a href="#" className="hover:bg-slate-900 hover:text-white px-3 py-2 rounded transition duration-150 ease-in-out">Contact</a>
@@ -108,15 +100,22 @@ export default function Home() {
               placeholder="Github URL"
             />
           </span>
+          <span className="flex justify-start items-center gap-2 mt-3">
+            <Input
+              disabled={loading}
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              type="text"
+              placeholder="Project ID"
+            />
+          </span>
           <Button
             onClick={handleClickDeploy}
             disabled={!isValidURL[0] || loading}
             className="w-full mt-3"
-          >{showUrl ?  "Deployed" : (loading ? "In Progress" : "Deploy")}
-            
-            
+          >
+            {showUrl ? "Deployed" : (loading ? "In Progress" : "Deploy")}
           </Button>
-          
           {logs.length > 0 && (
             <div
               className={`${firaCode.className} text-sm text-green-500 logs-container mt-5 border-green-500 border-2 rounded-lg p-4 h-[300px] overflow-y-auto`}
@@ -126,7 +125,9 @@ export default function Home() {
                   <code
                     ref={logs.length - 1 === i ? logContainerRef : undefined}
                     key={i}
-                  >{`> ${log}`}</code>
+                  >
+                    {`> ${log}`}
+                  </code>
                 ))}
               </pre>
             </div>
@@ -148,29 +149,28 @@ export default function Home() {
         </div>
       </main>
       <footer className="text-slate-500 py-4 mt-8 text-xs">
-      <div className="test-xs mx-auto container flex items-center justify-center">
-        <div className="flex-1"></div>
-        <div className="flex-1 text-center">
-          Developed by Vikash Sarraf
-            
+        <div className="test-xs mx-auto container flex items-center justify-center">
+          <div className="flex-1"></div>
+          <div className="flex-1 text-center">
+            Developed by Vikash Sarraf
           </div>
-        <div className="flex-1 text-right">
-          <a
-            href="https://github.com/Vikash-Sarraf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block hover:underline px-4 text-xs"
-          >
-            GitHub
-          </a>
-          <a
-            href="https://www.linkedin.com/in/vikash-sarraf-531372243/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block hover:underline text-xs"
-          >
-            LinkedIn
-          </a>
+          <div className="flex-1 text-right">
+            <a
+              href="https://github.com/Vikash-Sarraf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block hover:underline px-4 text-xs"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://www.linkedin.com/in/vikash-sarraf-531372243/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block hover:underline text-xs"
+            >
+              LinkedIn
+            </a>
           </div>
         </div>
       </footer>
