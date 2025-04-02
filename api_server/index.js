@@ -223,6 +223,7 @@ app.get('ready', (req, res) => {
 app.post('/subscription-notification', async (req, res) => {
     try {
         const filePath = await refreshESLDetails(process.env.ORG, process.env.UNIT);
+        console.log(filePath);
         if (filePath === "Error fetching details") {
             res.status(500).send('Error during refresh');
         } else if (filePath === "No new or updated ESL details found") {
